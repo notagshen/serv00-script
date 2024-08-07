@@ -57,12 +57,7 @@ try:
 except json.JSONDecodeError:
     error_message = "ACCOUNTS_JSON 参数格式错误"
     print(error_message)
-    if telegram_chat_id:
-        # 发送汇总消息到 Telegram
-        send_telegram_message(error_message)
-    if wecom_bot_token:
-        # 发送汇总消息到 wecom_bot
-        send_wecom_bot_message(error_message)
+    send_message(error_message)
     exit(1)
 
 # 初始化汇总消息
