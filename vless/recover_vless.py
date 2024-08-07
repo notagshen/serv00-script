@@ -54,7 +54,7 @@ except json.JSONDecodeError:
         send_telegram_message(telegram_token, telegram_chat_id, summary_message)
     if wecom_bot_token:
         # 发送汇总消息到 wecom_bot
-        send_wecom_bot_message(WECOM_BOT_TOKEN,message)
+        send_wecom_bot_message(wecom_bot_token,message)
     exit(1)
 
 # 初始化汇总消息
@@ -85,4 +85,4 @@ if telegram_chat_id:
     send_telegram_message(telegram_token, telegram_chat_id, summary_message)
 if wecom_bot_token:
     # 发送汇总消息到 wecom_bot
-    send_wecom_bot_message(WECOM_BOT_TOKEN,message)
+    send_wecom_bot_message(wecom_bot_token,message)
