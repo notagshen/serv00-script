@@ -2,11 +2,16 @@ import os
 import json
 import subprocess
 import requests
+# 从环境变量中获取密钥
+accounts_json = os.getenv('ACCOUNTS_JSON')
+telegram_token = os.getenv('TELEGRAM_TOKEN')
+telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
+wecom_bot_token = os.getenv('WECOM_BOT_TOKEN')
 
-def send_telegram_message(token, chat_id, message):
-    telegram_url = f"https://api.telegram.org/bot{token}/sendMessage"
+def send_telegram_message(message):
+    telegram_url = f"https://api.telegram.org/bot{telegram_token}/sendMessage"
     telegram_payload = {
-        "chat_id": chat_id,
+        "chat_id": telegram_chat_id,
         "text": message,
         "reply_markup": '{"inline_keyboard":[[{"text":"问题反馈❓","url":"https://t.me/yxjsjl"}]]}'
     }
@@ -19,7 +24,7 @@ def send_telegram_message(token, chat_id, message):
         print("发送 Telegram 消息失败")
     else:
         print("发送 Telegram 消息成功")
-def send_wecom_bot_message(token,message):
+def send_wecom_bot_message(message):
     wx_headers = {
         'Content-Type': 'application/json',
     }
@@ -32,29 +37,33 @@ def send_wecom_bot_message(token,message):
     }
 
     try:
-        response = requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={token}', headers=wx_headers,
+        response = requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={wecom_bot_token}', headers=wx_headers,
                              json=json_data)
         if response.status_code != 200:
             print(f"发送消息到WeCom_bot失败: {response.text}")
     except Exception as e:
         print(f"发送消息到WeCom_bot时出错: {e}")
-# 从环境变量中获取密钥
-accounts_json = os.getenv('ACCOUNTS_JSON')
-telegram_token = os.getenv('TELEGRAM_TOKEN')
-telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
-wecom_bot_token = os.getenv('WECOM_BOT_TOKEN')
-# 检查并解析 JSON 字符串
+def send_message(message):
+    if telegram_chat_id:
+        # 发送汇总消息到 Telegram
+        send_telegram_message(message)
+    if wecom_bot_token:
+        # 发送汇总消息到 wecom_bot
+        send_wecom_bot_message(message)
+
 try:
-    servers = json.loads(accounts_json)
+    # servers = json.loads(accounts_json)
+    servers = accounts_json
+
 except json.JSONDecodeError:
     error_message = "ACCOUNTS_JSON 参数格式错误"
     print(error_message)
     if telegram_chat_id:
         # 发送汇总消息到 Telegram
-        send_telegram_message(telegram_token, telegram_chat_id, summary_message)
+        send_telegram_message(error_message)
     if wecom_bot_token:
         # 发送汇总消息到 wecom_bot
-        send_wecom_bot_message(wecom_bot_token,summary_message)
+        send_wecom_bot_message(error_message)
     exit(1)
 
 # 初始化汇总消息
@@ -77,12 +86,13 @@ for server in servers:
     restore_command = f"sshpass -p '{password}' ssh -o StrictHostKeyChecking=no -p {port} {username}@{host} '{cron_command}'"
     try:
         output = subprocess.check_output(restore_command, shell=True, stderr=subprocess.STDOUT)
-        summary_message += f"\n成功恢复 {host} 上的 vless 服务：\n{output.decode('utf-8')}"
+        output_utf8 =output.decode('utf-8')
+        if "开始检查pm2 vless进程...\nvless进程正在运行。" in output_utf8:
+            print("vless进程已经运行，无需推送")
+        else:
+            summary_message += f"\n成功恢复 {host} 上的 vless 服务：\n{output.decode('utf-8')}"
+            send_message(summary_message)
+            
     except subprocess.CalledProcessError as e:
         summary_message += f"\n无法恢复 {host} 上的 vless 服务：\n{e.output.decode('utf-8')}"
-if telegram_chat_id:
-    # 发送汇总消息到 Telegram
-    send_telegram_message(telegram_token, telegram_chat_id, summary_message)
-if wecom_bot_token:
-    # 发送汇总消息到 wecom_bot
-    send_wecom_bot_message(wecom_bot_token,summary_message)
+        send_message(summary_message)
