@@ -19,7 +19,7 @@ def send_telegram_message(token, chat_id, message):
         print("发送 Telegram 消息失败")
     else:
         print("发送 Telegram 消息成功")
-def send_wecom_bot_message(WECOM_BOT_TOKEN,message):
+def send_wecom_bot_message(token,message):
     wx_headers = {
         'Content-Type': 'application/json',
     }
@@ -32,7 +32,7 @@ def send_wecom_bot_message(WECOM_BOT_TOKEN,message):
     }
 
     try:
-        response = requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={WECOM_BOT_TOKEN}', headers=wx_headers,
+        response = requests.post(f'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key={token}', headers=wx_headers,
                              json=json_data)
         if response.status_code != 200:
             print(f"发送消息到WeCom_bot失败: {response.text}")
@@ -42,14 +42,19 @@ def send_wecom_bot_message(WECOM_BOT_TOKEN,message):
 accounts_json = os.getenv('ACCOUNTS_JSON')
 telegram_token = os.getenv('TELEGRAM_TOKEN')
 telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
-WECOM_BOT_TOKEN = os.getenv('WECOM_BOT_TOKEN')
+wecom_bot_token = os.getenv('WECOM_BOT_TOKEN')
 # 检查并解析 JSON 字符串
 try:
     servers = json.loads(accounts_json)
 except json.JSONDecodeError:
     error_message = "ACCOUNTS_JSON 参数格式错误"
     print(error_message)
-    send_telegram_message(telegram_token, telegram_chat_id, error_message)
+    if telegram_chat_id:
+        # 发送汇总消息到 Telegram
+        send_telegram_message(telegram_token, telegram_chat_id, summary_message)
+    if wecom_bot_token:
+        # 发送汇总消息到 wecom_bot
+        send_wecom_bot_message(WECOM_BOT_TOKEN,message)
     exit(1)
 
 # 初始化汇总消息
@@ -75,9 +80,9 @@ for server in servers:
         summary_message += f"\n成功恢复 {host} 上的 vless 服务：\n{output.decode('utf-8')}"
     except subprocess.CalledProcessError as e:
         summary_message += f"\n无法恢复 {host} 上的 vless 服务：\n{e.output.decode('utf-8')}"
-if TELEGRAM_CHAT_ID:
+if telegram_chat_id:
     # 发送汇总消息到 Telegram
     send_telegram_message(telegram_token, telegram_chat_id, summary_message)
-if WECOM_BOT_TOKEN:
+if wecom_bot_token:
     # 发送汇总消息到 wecom_bot
     send_wecom_bot_message(WECOM_BOT_TOKEN,message)
