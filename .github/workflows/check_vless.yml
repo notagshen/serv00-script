@@ -28,6 +28,7 @@ jobs:
           ACCOUNTS_JSON: ${{ secrets.ACCOUNTS_JSON }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WECOM_BOT_TOKEN: ${{ secrets.WECOM_BOT_TOKEN }}
         run: |
           python3 vless/recover_vless.py
 
