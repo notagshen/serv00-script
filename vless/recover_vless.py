@@ -58,12 +58,7 @@ try:
 except json.JSONDecodeError:
     error_message = "ACCOUNTS_JSON 参数格式错误"
     print(error_message)
-    if telegram_chat_id:
-        # 发送汇总消息到 Telegram
-        send_telegram_message(error_message)
-    if wecom_bot_token:
-        # 发送汇总消息到 wecom_bot
-        send_wecom_bot_message(error_message)
+    send_message(error_message)
     exit(1)
 
 # 初始化汇总消息
@@ -88,11 +83,13 @@ for server in servers:
         output = subprocess.check_output(restore_command, shell=True, stderr=subprocess.STDOUT)
         output_utf8 =output.decode('utf-8')
         if "开始检查pm2 vless进程...\nvless进程正在运行。" in output_utf8:
-            print("vless进程已经运行，无需推送")
+            print("vless正常，无需推送汇总消息")
         else:
             summary_message += f"\n成功恢复 {host} 上的 vless 服务：\n{output.decode('utf-8')}"
+            #推送汇总消息到Telegram和企业微信机器人
             send_message(summary_message)
             
     except subprocess.CalledProcessError as e:
         summary_message += f"\n无法恢复 {host} 上的 vless 服务：\n{e.output.decode('utf-8')}"
+        #推送汇总消息到Telegram和企业微信机器人
         send_message(summary_message)
